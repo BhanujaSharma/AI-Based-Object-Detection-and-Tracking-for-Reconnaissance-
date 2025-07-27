@@ -2,7 +2,7 @@ from pymongo import MongoClient
 import gridfs
 
 # Connect to MongoDB
-client = MongoClient("mongodb+srv://bhanujasharma2223:bRh51nQwd9UooE5C@majorproject.elha1mu.mongodb.net/?retryWrites=true&w=majority&appName=MajorProject")
+client = MongoClient("your connection string")
 db = client["ai_recon_tracking"]
 
 # Define the collection you're using
