@@ -1,0 +1,89 @@
+import cv2
+import face_recognition
+import numpy as np
+import os
+import uuid
+import csv
+
+ENCODINGS_FILE = "encodings.npy"
+CLASSNAMES_FILE = "classNames.csv"
+
+# Load existing data
+if os.path.exists(ENCODINGS_FILE):
+    known_encodings = list(np.load(ENCODINGS_FILE, allow_pickle=True))
+else:
+    known_encodings = []
+
+if os.path.exists(CLASSNAMES_FILE):
+    with open(CLASSNAMES_FILE, "r") as f:
+        class_names = f.read().splitlines()
+else:
+    class_names = []
+
+# Webcam stream
+cap = cv2.VideoCapture(0)
+print("Press 'r' to register a new face | Press 'q' to quit")
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    img = cv2.flip(frame, 1)
+    small_frame = cv2.resize(img, (0, 0), fx=0.25, fy=0.25)
+    rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+
+    # Detect and recognize faces in current frame
+    face_locations = face_recognition.face_locations(rgb_small_frame)
+    face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+
+    for face_encoding, face_location in zip(face_encodings, face_locations):
+        matches = face_recognition.compare_faces(known_encodings, face_encoding)
+        face_distances = face_recognition.face_distance(known_encodings, face_encoding)
+
+        name = "Unknown"
+        if len(face_distances) > 0:
+            best_match_index = np.argmin(face_distances)
+            if matches[best_match_index]:
+                name = os.path.splitext(class_names[best_match_index])[0]
+
+        top, right, bottom, left = [v * 4 for v in face_location]  # upscale from 0.25
+        cv2.rectangle(img, (left, top), (right, bottom), (0, 255, 0), 2)
+        cv2.putText(img, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
+
+    cv2.imshow("Face Registration and Recognition", img)
+
+    key = cv2.waitKey(1) & 0xFF
+
+    if key == ord('q'):
+        break
+
+    elif key == ord('r'):
+        # Register face
+        print("📸 Registering face...")
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        locations = face_recognition.face_locations(rgb_frame)
+        encodings = face_recognition.face_encodings(rgb_frame, locations)
+
+        if len(encodings) == 0:
+            print("❌ No face detected. Try again.")
+        else:
+            new_encoding = encodings[0]
+            new_id = str(uuid.uuid4())[:8]
+            known_encodings.append(new_encoding)
+            class_names.append(new_id + ".jpg")
+
+            # Save updated encodings and names
+            np.save(ENCODINGS_FILE, known_encodings)
+            with open(CLASSNAMES_FILE, "w") as f:
+                f.write("\n".join(class_names))
+
+            # Save face image (optional)
+            if not os.path.exists("registered_faces"):
+                os.makedirs("registered_faces")
+            cv2.imwrite(f"registered_faces/{new_id}.jpg", frame)
+
+            print(f"✅ Face registered with ID: {new_id}")
+
+cap.release()
+cv2.destroyAllWindows()
