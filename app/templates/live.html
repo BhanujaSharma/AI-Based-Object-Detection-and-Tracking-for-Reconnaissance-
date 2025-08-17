@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="live-container">
+    <h2>Live Camera Feed: {{ cam_id }}</h2>
+    <div class="video-frame">
+        <img id="video-feed" src="/video_feed/{{ cam_id }}" alt="Live Feed">
+    </div>
+    <a href="/" class="back-link">← Back to Home</a>
+</div>
+{% endblock %}

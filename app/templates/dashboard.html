@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Welcome, {{ username }}</h2>
+    <p>Your access zone: <strong>{{ zone }}</strong></p>
+
+    {% if error %}
+        <div class="error" style="color: red;">{{ error }}</div>
+    {% endif %}
+
+    {% if is_admin %}
+    <hr>
+    <h3>Add New User</h3>
+    <form method="post" action="/dashboard" class="user-form">
+        <input type="text" name="new_username" placeholder="Username" required>
+        <input type="password" name="new_password" placeholder="Password" required>
+        <select name="new_role" required>
+            <option value="admin">Admin</option>
+            <option value="zone_officer">Zone Officer</option>
+            <option value="viewer">Viewer</option>
+        </select>
+        <input type="text" name="new_zone" placeholder="Zone (e.g., zone1, zone2)" required>
+        <button type="submit">Create User</button>
+    </form>
+
+    <h3>Existing Users</h3>
+    <table border="1" cellpadding="6" cellspacing="0">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Zone</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <form method="post" action="/edit_user">
+                    <td>
+                        {{ user.username }}
+                        <input type="hidden" name="old_username" value="{{ user.username }}">
+                    </td>
+                    <td>
+                        {% if user.username == username %}
+                            {{ user.role }}
+                            <input type="hidden" name="updated_role" value="{{ user.role }}">
+                        {% else %}
+                            <select name="updated_role" required>
+                                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>admin</option>
+                                <option value="zone_officer" {% if user.role == 'zone_officer' %}selected{% endif %}>zone_officer</option>
+                                <option value="viewer" {% if user.role == 'viewer' %}selected{% endif %}>viewer</option>
+                            </select>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.username == username %}
+                            {{ user.zone }}
+                            <input type="hidden" name="updated_zone" value="{{ user.zone }}">
+                        {% else %}
+                            <input type="text" name="updated_zone" value="{{ user.zone }}" required>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.username != username %}
+                            <button type="submit" style="background: orange; color: white; border: none; padding: 4px 8px; border-radius: 5px;">Save</button>
+                            <form method="post" action="/delete_user" style="display:inline;" onsubmit="return confirm('Delete {{ user.username }}?');">
+                                <input type="hidden" name="username" value="{{ user.username }}">
+                                <button type="submit" style="background-color: crimson; color: white; border: none; padding: 4px 8px; border-radius: 5px;">Delete</button>
+                            </form>
+                        {% else %}
+                            <span style="color: gray;">(You)</span>
+                        {% endif %}
+                    </td>
+                </form>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+
+    {% endif %}
+
+    <hr>
+    <h3>Detection Logs</h3>
+    {% if logs %}
+        <table border="1" cellpadding="6" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Object Type</th>
+                    <th>Zone</th>
+                    <th>Image</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.timestamp }}</td>
+                    <td>{{ log.object_type }}</td>
+                    <td>{{ log.zone }}</td>
+                    <td>
+                        <img src="/image/{{ log.image_id }}" alt="Detected Image" width="100">
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No logs available.</p>
+    {% endif %}
+</div>
+{% endblock %}
